@@ -20,6 +20,12 @@
 		},
 		{
 			"path": "./apps/payment-microservice"
+		},
+		{
+			"path": "./apps/notification-microservice-e2e"
+		},
+		{
+			"path": "./apps/notification-microservice"
 		}
 	]
 }
