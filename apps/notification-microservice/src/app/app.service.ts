@@ -9,16 +9,37 @@ export class AppService {
 	 * @param data - Order data from order_created topic
 	 */
 	sendOrderNotification(data: any) {
+		// Extract customer email from the message
+		const customerEmail = data.customerEmail || data.email;
+
+		if (!customerEmail) {
+			this.logger.warn(
+				`⚠️ No customer email found for order ${data.orderId}, skipping email notification`,
+			);
+			return {
+				status: "skipped",
+				type: "order_created",
+				orderId: data.orderId,
+				message: "No customer email provided",
+				timestamp: new Date().toISOString(),
+			};
+		}
+
 		this.logger.log("=== Order Notification ===");
 		this.logger.log(
-			`📧 Sending order confirmation email for Order #${data.orderId}`,
+			`📧 Sending order confirmation email to ${customerEmail} for Order #${data.orderId}`,
 		);
 		this.logger.log(`Product: ${data.product}`);
 		this.logger.log(`Amount: $${data.price}`);
 		this.logger.log("==========================");
 
 		// In production, this would send email/SMS/push notification
-		// Example: await this.emailService.sendOrderConfirmation(data);
+		// Example:
+		// await this.emailService.send({
+		//   to: customerEmail,
+		//   subject: `Order Confirmation #${data.orderId}`,
+		//   html: `<h1>Order Confirmed!</h1><p>Product: ${data.product}</p>`
+		// });
 
 		return {
 			status: "sent",
@@ -34,15 +55,38 @@ export class AppService {
 	 * @param data - Payment data from payment-succeeded topic
 	 */
 	sendPaymentNotification(data: any) {
+		// Extract customer email from the message
+		const customerEmail = data.customerEmail || data.email;
+
+		if (!customerEmail) {
+			this.logger.warn(
+				`⚠️ No customer email found for order ${data.orderId}, skipping email notification`,
+			);
+			return {
+				status: "skipped",
+				type: "payment-succeeded",
+				orderId: data.orderId,
+				message: "No customer email provided",
+				timestamp: new Date().toISOString(),
+			};
+		}
+
 		this.logger.log("=== Payment Notification ===");
-		this.logger.log(`📧 Sending payment ${data.paymentStatus} notification`);
+		this.logger.log(
+			`📧 Sending payment ${data.paymentStatus} notification to ${customerEmail}`,
+		);
 		this.logger.log(`Order ID: ${data.orderId}`);
 		this.logger.log(`Status: ${data.paymentStatus}`);
 		this.logger.log(`Amount: $${data.amount}`);
 		this.logger.log("=============================");
 
 		// In production, this would send email/SMS/push notification
-		// Example: await this.emailService.sendPaymentConfirmation(data);
+		// Example:
+		// await this.emailService.send({
+		//   to: customerEmail,
+		//   subject: `Payment ${data.paymentStatus} - Order #${data.orderId}`,
+		//   html: `<h1>Payment ${data.paymentStatus}</h1><p>Amount: $${data.amount}</p>`
+		// });
 
 		return {
 			status: "sent",

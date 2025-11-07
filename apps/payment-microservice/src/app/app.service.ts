@@ -71,6 +71,7 @@ export class AppService implements OnModuleInit {
 				.emit("payment-succeeded", {
 					orderId: data.orderId,
 					paymentStatus,
+					customerEmail: data.customerEmail, // Include customer email for notifications
 					...paymentResponse,
 				})
 				.subscribe({
