@@ -27,9 +27,9 @@ export class AppService implements OnModuleInit {
 		this.logger.log("Payload:", JSON.stringify(data, null, 2));
 		this.logger.log("====================================");
 
-		// Send to payment service - simple one line!
+		// Send to payment service - fire and forget (event-driven)
 		this.kafkaClient.emit("process_payment", data);
-		this.logger.log("💳 Sent to process_payment topic");
+		this.logger.log("💳 Sent to process_payment topic (fire-and-forget)");
 
 		return {
 			status: "processed",
