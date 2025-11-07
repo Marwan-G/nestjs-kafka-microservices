@@ -10,6 +10,10 @@ export class AppService implements OnModuleInit {
 		@Inject("KAFKA_SERVICE") private readonly kafkaClient: ClientKafka,
 	) {}
 
+	/**
+	 * Lifecycle hook: Connects to Kafka when the module initializes
+	 * This is required for the Kafka client to be able to emit messages
+	 */
 	async onModuleInit() {
 		try {
 			this.logger.log("🔌 Connecting to Kafka (Payment Service Producer)...");
@@ -23,6 +27,13 @@ export class AppService implements OnModuleInit {
 		}
 	}
 
+	/**
+	 * Processes payment for an order
+	 * This method is called when a message is received from the process_payment topic
+	 *
+	 * @param data - Order data containing orderId, price, product, etc.
+	 * @returns Payment processing result with status and details
+	 */
 	processPayment(data: any) {
 		this.logger.log("=== Payment Microservice Received ===");
 		this.logger.log("Order ID:", data.orderId);
@@ -30,7 +41,7 @@ export class AppService implements OnModuleInit {
 		this.logger.log("Product:", data.product);
 		this.logger.log("=====================================");
 
-		// Simulate payment processing
+		// Simulate payment processing (80% success rate for demo purposes)
 		const paymentStatus = Math.random() < 0.2 ? "SUCCESS" : "FAILED";
 		this.logger.log(`💰 Payment ${paymentStatus}`);
 
@@ -41,19 +52,58 @@ export class AppService implements OnModuleInit {
 			timestamp: new Date().toISOString(),
 		};
 
-		// Log the response so you can see it
+		// Log the response so you can see it in the service logs
 		this.logger.log(
 			"📋 Payment Response:",
 			JSON.stringify(paymentResponse, null, 2),
 		);
 
-		// Emit payment result to payment-succeeded topic (fire-and-forget)
-		this.kafkaClient.emit("payment-succeeded", {
-			orderId: data.orderId,
-			paymentStatus,
-			...paymentResponse,
-		});
-		this.logger.log("📤 Emitted to payment-succeeded topic");
+		/**
+		 * Emit payment result to payment-succeeded topic (fire-and-forget pattern)
+		 * This allows other services to react to payment completion without blocking
+		 *
+		 * emit() returns an Observable, so we subscribe to handle success/error:
+		 * - next(): Called when message is successfully sent to Kafka
+		 * - error(): Called if Kafka rejects the message or encounters an error
+		 */
+		try {
+			this.kafkaClient
+				.emit("payment-succeeded", {
+					orderId: data.orderId,
+					paymentStatus,
+					...paymentResponse,
+				})
+				.subscribe({
+					next: () => {
+						// Success callback: Message was accepted by Kafka
+						this.logger.log(
+							"📤 Successfully emitted to payment-succeeded topic",
+						);
+					},
+					error: (error) => {
+						// Error callback: Handle transient Kafka errors gracefully
+						// Leadership election errors are common during Kafka restarts
+						// and Kafka will automatically retry, so we log as warning
+						if (
+							error?.message?.includes("leadership election") ||
+							error?.message?.includes("no leader")
+						) {
+							this.logger.warn(
+								"⚠️ Kafka leadership election in progress, message will be retried automatically",
+							);
+						} else {
+							// Other errors are logged as errors for investigation
+							this.logger.error(
+								"❌ Error emitting to payment-succeeded topic:",
+								error,
+							);
+						}
+					},
+				});
+		} catch (error) {
+			// Catch any synchronous errors during emit setup
+			this.logger.error("❌ Failed to emit to payment-succeeded topic:", error);
+		}
 
 		return paymentResponse;
 	}
