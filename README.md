@@ -1,90 +1,296 @@
-# NESTJSKAFKAMICROSERVICE
+# 🚀 NestJS Kafka Microservices - Learning Project
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> **Perfect for developers learning microservices architecture!** This project demonstrates a complete microservices setup using NestJS, Kafka, and Docker.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+## 📚 What You'll Learn
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+This repository is designed for developers who want to understand:
 
-## Finish your CI setup
+- **Microservices Architecture** - How to build distributed systems
+- **Event-Driven Communication** - Using Kafka as a message broker
+- **NestJS Microservices** - Building scalable Node.js services
+- **Docker & Docker Compose** - Containerizing microservices
+- **Nx Monorepo** - Managing multiple services in one workspace
+- **Service Communication Patterns** - Producer/Consumer, Request/Response
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/4VxxB1N8oz)
-
-
-## Generate a library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
-
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+## 🏗️ Architecture Overview
 
 ```
-npx nx release
+┌─────────────┐
+│   Frontend  │
+└──────┬──────┘
+       │ HTTP POST
+       ▼
+┌──────────────────┐      emit("order_created")      ┌──────────────┐
+│   API Gateway    │ ────────────────────────────────▶│    Kafka     │
+│  (Port 3000)     │                                  │   Broker    │
+│  [Producer]     │                                  └──────┬───────┘
+└──────────────────┘                                         │
+                                                             │ subscribe
+                                                             ▼
+                                    ┌─────────────────────────────────┐
+                                    │   Order Microservice            │
+                                    │   [Consumer + Producer]         │
+                                    │   - Receives: order_created     │
+                                    │   - Sends: process_payment      │
+                                    └────────────┬────────────────────┘
+                                                 │ emit("process_payment")
+                                                 ▼
+                                    ┌─────────────────────────────────┐
+                                    │   Payment Microservice          │
+                                    │   [Consumer]                    │
+                                    │   - Receives: process_payment   │
+                                    └─────────────────────────────────┘
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+## 🎯 Services
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 1. **API Gateway** (`apps/api-gateway`)
+- **Type**: HTTP Server + Kafka Producer
+- **Port**: 3000
+- **Role**: Entry point for external requests
+- **Responsibilities**:
+  - Receives HTTP POST requests
+  - Validates incoming data
+  - Publishes events to Kafka topics
 
-## Keep TypeScript project references up to date
+### 2. **Order Microservice** (`apps/order-microservice`)
+- **Type**: Kafka Consumer + Producer
+- **Role**: Order processing service
+- **Responsibilities**:
+  - Consumes `order_created` events
+  - Processes orders
+  - Publishes `process_payment` events
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+### 3. **Payment Microservice** (`apps/payment-microservice`)
+- **Type**: Kafka Consumer
+- **Role**: Payment processing service
+- **Responsibilities**:
+  - Consumes `process_payment` events
+  - Processes payments
+  - Returns payment status
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+## 🛠️ Tech Stack
 
-```sh
-npx nx sync
+- **Framework**: [NestJS](https://nestjs.com/) - Progressive Node.js framework
+- **Message Broker**: [Apache Kafka](https://kafka.apache.org/) - Distributed event streaming
+- **Monorepo**: [Nx](https://nx.dev/) - Smart, fast build system
+- **Containerization**: Docker & Docker Compose
+- **Language**: TypeScript
+- **Package Manager**: npm/bun
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- Docker & Docker Compose
+- npm or bun
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/nestjs-kafka-microservices.git
+cd nestjs-kafka-microservices
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+### Step 2: Start Kafka
 
-```sh
-npx nx sync:check
+```bash
+cd kafka
+docker-compose up -d
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+This starts:
+- Zookeeper (Kafka dependency)
+- Kafka Broker (Port 9092)
+- Kafka UI (Port 8080) - Visual interface for monitoring
 
+### Step 3: Install Dependencies
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+npm install
+```
 
-## Install Nx Console
+### Step 4: Start All Microservices
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+```bash
+# Start all services simultaneously
+npx nx run-many --target=serve --projects=api-gateway,order-microservice,payment-microservice
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+# Or start individually
+npx nx serve api-gateway
+npx nx serve order-microservice
+npx nx serve payment-microservice
+```
 
-## Useful links
+### Step 5: Test the Flow
 
-Learn more:
+```bash
+curl -X POST http://localhost:3000/order \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "order_created",
+    "message": {
+      "orderId": 123,
+      "product": "MacBook Pro",
+      "price": 2500
+    }
+  }'
+```
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 📖 Key Concepts Explained
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Kafka Topics
+
+Topics are like message queues. Each service subscribes to specific topics:
+
+- `order_created` - When a new order is placed
+- `process_payment` - When payment needs to be processed
+
+### Producer vs Consumer
+
+- **Producer**: Sends messages to Kafka topics (`emit()`)
+- **Consumer**: Receives messages from Kafka topics (`@MessagePattern()`)
+
+### Service Communication Flow
+
+1. **API Gateway** receives HTTP request → produces `order_created` event
+2. **Order Service** consumes `order_created` → processes order → produces `process_payment` event
+3. **Payment Service** consumes `process_payment` → processes payment
+
+## 🎓 Learning Path
+
+### Beginner
+1. Understand the basic architecture
+2. Run the project locally
+3. Send test requests and observe logs
+4. Explore Kafka UI at `http://localhost:8080`
+
+### Intermediate
+1. Modify message payloads
+2. Add new microservices
+3. Create new Kafka topics
+4. Implement error handling
+
+### Advanced
+1. Add database integration
+2. Implement authentication/authorization
+3. Add monitoring and logging (Grafana, Loki)
+4. Deploy to Kubernetes
+5. Set up CI/CD pipelines
+
+## 📁 Project Structure
+
+```
+NESTJS-KAFKA-MICROSERVICE/
+├── apps/
+│   ├── api-gateway/          # HTTP API Gateway
+│   ├── order-microservice/    # Order processing service
+│   └── payment-microservice/  # Payment processing service
+├── kafka/
+│   └── docker-compose.yaml    # Kafka infrastructure
+├── package.json
+├── nx.json                    # Nx workspace configuration
+└── README.md
+```
+
+## 🔍 Monitoring
+
+### Kafka UI
+Visit `http://localhost:8080` to:
+- View all Kafka topics
+- Monitor message flow
+- Inspect message payloads
+- Check consumer groups
+
+### Service Logs
+Each service logs:
+- Connection status
+- Received messages
+- Processing steps
+- Errors (if any)
+
+## 🧪 Testing
+
+```bash
+# Run tests for a specific service
+npx nx test api-gateway
+
+# Run all tests
+npx nx run-many --target=test --all
+```
+
+## 🐳 Docker Deployment
+
+### Build Docker Images
+
+```bash
+# Build all services
+npx nx build api-gateway
+npx nx build order-microservice
+npx nx build payment-microservice
+
+# Create Docker images (Dockerfiles needed)
+docker build -t api-gateway:latest .
+```
+
+### Docker Compose
+
+```yaml
+# Example docker-compose.yml
+services:
+  api-gateway:
+    image: api-gateway:latest
+    ports:
+      - "3000:3000"
+```
+
+## 🤝 Contributing
+
+This is a learning project! Feel free to:
+- Fork the repository
+- Add new microservices
+- Improve documentation
+- Share your learnings
+
+## 📚 Resources
+
+- [NestJS Microservices Documentation](https://docs.nestjs.com/microservices/basics)
+- [Kafka Documentation](https://kafka.apache.org/documentation/)
+- [Nx Documentation](https://nx.dev)
+- [Docker Documentation](https://docs.docker.com/)
+
+## 🐛 Troubleshooting
+
+### Kafka Connection Issues
+- Ensure Kafka is running: `docker ps | grep kafka`
+- Check Kafka logs: `docker logs kafka`
+- Verify port 9092 is accessible
+
+### Service Not Starting
+- Check if port 3000 is available
+- Verify all dependencies are installed
+- Check service logs for errors
+
+### Messages Not Received
+- Verify topics exist: `docker exec kafka kafka-topics.sh --list`
+- Check consumer group status in Kafka UI
+- Ensure services are subscribed to correct topics
+
+## 📝 License
+
+MIT License - Feel free to use this project for learning!
+
+## 🙏 Acknowledgments
+
+Built with:
+- [NestJS](https://nestjs.com/)
+- [Apache Kafka](https://kafka.apache.org/)
+- [Nx](https://nx.dev/)
+
+---
+
+**Happy Learning! 🎉**
+
+If you find this project helpful, please give it a ⭐ star!
