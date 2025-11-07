@@ -246,6 +246,64 @@ services:
       - "3000:3000"
 ```
 
+## 🗺️ Deployment Roadmap
+
+This project is growing into a production-grade MVP. Follow these phases to stand up the full platform on AWS EKS with clean CI/CD, logging, and GitOps.
+
+### Phase 0 – Repository & Project Structure
+- Keep the Nx monorepo (`apps/`, `infra/`, `charts/`, `ops/`, `docs/`).
+- Use branching model (`main`, `develop`, `feat/*`).
+- Document architecture decisions and onboarding notes.
+
+### Phase 1 – Terraform Infrastructure on AWS
+- Layout Terraform under `infra/terraform` with `modules/` and `envs/` (dev/prod).
+- Provision VPC, subnets, gateways, security groups.
+- Create EKS cluster + managed node groups, ECR repos per service, IAM roles (including GitHub OIDC), logging resources, and optional artifact storage.
+- Manage secrets with AWS Secrets Manager or SSM Parameter Store.
+
+### Phase 2 – Containerization Workflow
+- Add Dockerfiles per service (multi-stage build → dist/main.js) and `.dockerignore` files.
+- Optionally provide a local Docker Compose for manual testing.
+- Update docs with build instructions.
+
+### Phase 3 – GitHub Actions CI (Quality Gates)
+- Workflow: checkout → Node setup (cached) → `npm ci` → `npm run format:check` → `nx run-many -t test build typecheck` (+ lint if desired).
+- Enable dependency scanning (`npm audit`) and protect `main` with required status checks.
+
+### Phase 4 – Docker Build & Push Pipeline
+- Workflow: trigger on `main`/tags → setup QEMU/Buildx → login to ECR via GitHub OIDC → build images per service → tag (`latest`, `sha`, semver later) → push to ECR.
+- Attach image metadata labels.
+
+### Phase 5 – Kubernetes Deployment (Helm)
+- Create Helm charts per microservice under `charts/` plus an umbrella chart later.
+- Define namespace layout (`dev`, `staging`, `prod`, `logging`, `monitoring`, `argo`).
+- Perform manual `helm upgrade --install` to EKS for first deployments.
+
+### Phase 6 – GitHub Actions CD (Basic)
+- Deploy workflow: on successful image push → assume AWS role → update image tags in Helm values → `helm upgrade --install` into EKS.
+- Add environment-specific workflows with manual approvals for staging/prod.
+
+### Phase 7 – Observability & Logging
+- Deploy Fluentd DaemonSet (Helm) to ship pod logs to CloudWatch/S3.
+- Install kube-prometheus-stack (Prometheus + Grafana) for cluster metrics.
+- Add dashboards/alerts incrementally.
+
+### Phase 8 – GitOps with Argo CD
+- Install Argo CD (`argocd` namespace) via Terraform/Helm.
+- Store application manifests under `infra/argocd/apps/` (one per service + umbrella).
+- Enable auto-sync for dev, manual approvals for staging/prod.
+- Integrate External Secrets Operator for pulling secrets from AWS SM/SSM.
+
+### Phase 9 – Hardening & Advanced Features
+- Add service mesh (Istio/Linkerd) for mTLS and traffic policies.
+- Configure network policies, pod security, autoscaling, canary deployments (Flagger/Argo Rollouts).
+- Introduce tracing via OpenTelemetry collector.
+
+### Phase 10 – Documentation & Runbooks
+- Expand `docs/` with architecture diagrams, ADRs, deployment and rollback runbooks.
+- Provide onboarding guides and conventions for logging, metrics, tracing.
+
+
 ## 🤝 Contributing
 
 This is a learning project! Feel free to:
